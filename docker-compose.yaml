@@ -1,0 +1,75 @@
+version: "3"
+
+services:
+
+  samba:
+    container_name: samba
+    image: dperson/samba:rpi
+    restart: always
+    command: '-u "raspi;samba_password" -s "media;/media;yes;no"'
+    stdin_open: true
+    tty: true
+    ports:
+      - 139:130
+      - 445:445
+    volumes:
+      - /usr/share/zoneinfo/America/Lima:/etc/localtime
+      - /home/pi/Documents/media:/media
+
+
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:latest
+    restart: unless-stopped
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "67:67/udp"
+      - "80:80/tcp"
+      - "443:443/tcp"
+    environment:
+      TZ: 'America/Lima'
+      WEBPASSWORD: 'pihole_password'
+    # Volumes store your data between container upgrades
+    volumes:
+       - /home/pi/Documents/pihole/etc-pihole/:/etc/pihole/
+       - /home/pi/Documents/pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
+    cap_add:
+      - NET_ADMIN
+
+
+  netatalk:
+    container_name: netatalk
+    image: dubodubonduponey/netatalk:v1
+    restart: unless-stopped
+    volumes:
+      - /home/pi/Documents/timemachine:/media/timemachine
+    environment:
+      - USERS=macbook
+      - PASSWORDS=654321
+      - NAME=rpi
+      - AVAHI_NAME=rpi
+    cap_add:
+      - NET_BIND_SERVICE
+      - CHOWN
+      - FOWNER
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    cap_drop:
+      - ALL
+    network_mode: host
+
+
+  duckdns:
+    container_name: duckdns
+    image: linuxserver/duckdns
+    environment:
+      - TZ=America/Lima
+      - SUBDOMAINS=usuario_duckdns
+      - TOKEN=aqui_el_token_duckdns
+      - LOG_FILE=false #optional
+    restart: unless-stopped
